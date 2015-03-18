@@ -35,11 +35,18 @@ module Mongoid
     # @since 1.0.0
     def revise
       previous = previous_revision
+
+      # only create a new version if something changed
       if previous && versioned_attributes_changed?
+
+        # create a new version
         new_version = versions.build(
           previous.versioned_attributes
         )
-        new_version._id = nil
+        # define a new id or else the .delete() removes everything
+        new_version._id = BSON::ObjectId.new
+
+        # check if we're over our limit
         if version_max.present? && versions.length > version_max
           deleted = versions.first
           if deleted.respond_to?(:paranoid?) && deleted.paranoid?
@@ -50,8 +57,11 @@ module Mongoid
             versions.delete(deleted)
           end
         end
+
         self.version = (version || 1 ) + 1
+
       end
+
     end
 
     # Forces the creation of a new version of the +Document+, regardless of
